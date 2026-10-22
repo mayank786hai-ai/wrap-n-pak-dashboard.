@@ -1,0 +1,1276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WRAP n PAK · Performance Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root {
+  --bg: #f0f2f7;
+  --bg-subtle: #e8ebf2;
+  --card: #ffffff;
+  --ink: #0f172a;
+  --ink-secondary: #334155;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-soft: #eff6ff;
+  --accent-muted: #dbeafe;
+  --green: #059669;
+  --green-soft: #ecfdf5;
+  --amber: #d97706;
+  --amber-soft: #fffbeb;
+  --red: #dc2626;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 10px 15px -3px rgba(15, 23, 42, 0.06), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --table-header-bg: #f8fafc;
+  --table-hover: #f8fafc;
+  --total-row-bg: #f1f5f9;
+  --upload-bg: #fafbff;
+  --note-bg: #f8fafc;
+  --admin-bg: linear-gradient(180deg, #f8faff 0%, #fff 40%);
+}
+
+html.dark {
+  --bg: #0b1120;
+  --bg-subtle: #1e293b;
+  --card: #111827;
+  --ink: #f1f5f9;
+  --ink-secondary: #cbd5e1;
+  --muted: #94a3b8;
+  --line: #1e293b;
+  --line-strong: #334155;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-soft: #1e3a5f;
+  --accent-muted: #1e3a5f;
+  --green: #10b981;
+  --green-soft: #064e3b;
+  --amber: #f59e0b;
+  --amber-soft: #78350f;
+  --red: #ef4444;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  --table-header-bg: #0f172a;
+  --table-hover: #1e293b;
+  --total-row-bg: #1e293b;
+  --upload-bg: #0f172a;
+  --note-bg: #0f172a;
+  --admin-bg: linear-gradient(180deg, #0f172a 0%, #111827 40%);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+.card, .btn, .tag, .tablewrap, th, td, .uploadbox, .note, .tabs, .tab {
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* ========== Layout ========== */
+.wrap {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 28px 48px;
+}
+
+/* ========== Hero / Header ========== */
+.hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.hero-left { flex: 1; min-width: 0; }
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.eyebrow::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.hero p {
+  color: var(--muted);
+  font-size: 14px;
+  max-width: 480px;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ========== Buttons & Inputs ========== */
+.btn, select, input[type="date"], input[type="text"], input[type="number"], input[type="url"], input[type="file"] {
+  font-family: inherit;
+  font-size: 13px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 14px;
+  background: var(--card);
+  color: var(--ink);
+  transition: all 0.15s ease;
+}
+
+.btn {
+  cursor: pointer;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  border-color: var(--line-strong);
+  background: var(--bg-subtle);
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+}
+
+.btn.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-muted);
+}
+
+label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-secondary);
+}
+
+/* ========== Tags & Pills ========== */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  letter-spacing: 0.01em;
+}
+
+.pill {
+  font-size: 11px;
+  border-radius: 20px;
+  padding: 3px 9px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* ========== Marketplace Menu ========== */
+.menuWrap { position: relative; display: inline-block; }
+
+.menuBtn {
+  font-size: 18px;
+  line-height: 1;
+  padding: 9px 12px;
+  min-width: 42px;
+  justify-content: center;
+}
+
+.menuDropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 180px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  z-index: 100;
+}
+
+.menuDropdown.open { display: block; }
+
+.menuOption {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  transition: all 0.12s ease;
+}
+
+.menuOption:hover,
+.menuOption.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ========== Cards ========== */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow);
+}
+
+.cardhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.cardhead h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.small {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  font-weight: 400;
+}
+
+/* ========== Metric Cards ========== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.metric {
+  position: relative;
+  overflow: hidden;
+}
+
+.metric::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px 0 0 4px;
+  opacity: 0.85;
+}
+
+.metric .label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metric .value {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 10px 0 4px;
+  color: var(--ink);
+  line-height: 1.15;
+}
+
+.metric .foot {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ========== Section Grid ========== */
+.sectiongrid {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.lowergrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ========== Tabs ========== */
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-subtle);
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.tab {
+  border: 0;
+  background: transparent;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.tab:hover { color: var(--ink); }
+
+.tab.active {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ========== Chart ========== */
+.chart {
+  height: 300px;
+  display: block;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.legend {
+  display: flex;
+  gap: 18px;
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* ========== Tables ========== */
+.tablewrap {
+  overflow: auto;
+  max-height: 480px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+th, td {
+  text-align: right;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+
+th {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  background: var(--table-header-bg);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+th:first-child,
+td:first-child {
+  text-align: left;
+}
+
+td:first-child {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+tr:last-child td { border-bottom: 0; }
+
+tr:hover td { background: var(--table-hover); }
+
+.totalrow td {
+  font-weight: 700;
+  background: var(--total-row-bg) !important;
+  color: var(--ink);
+}
+
+/* ========== Admin Panel ========== */
+.admin-entry { display: none; }
+
+#adminPanel {
+  border: 2px solid var(--accent) !important;
+  background: var(--admin-bg);
+}
+
+.uploadbox {
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--upload-bg);
+  transition: border-color 0.15s ease;
+}
+
+.uploadbox:hover {
+  border-color: var(--accent);
+}
+
+.uploadbox label {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 8px;
+  color: var(--ink-secondary);
+}
+
+.status {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.recharge {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.recharge input { max-width: 170px; }
+
+.note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 14px;
+  line-height: 1.65;
+  padding: 12px 14px;
+  background: var(--note-bg);
+  border-radius: 10px;
+  border-left: 3px solid var(--line-strong);
+}
+
+.warning { color: var(--amber); }
+
+.footnote {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 28px;
+  text-align: center;
+  line-height: 1.6;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+/* ========== Dark mode toggle ========== */
+.theme-toggle {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 18px;
+  line-height: 1;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.theme-toggle .icon-sun,
+.theme-toggle .icon-moon {
+  display: none;
+}
+html:not(.dark) .theme-toggle .icon-moon { display: inline; }
+html.dark .theme-toggle .icon-sun { display: inline; }
+
+/* ========== Utility ========== */
+.section-spacer { margin-bottom: 16px; }
+
+/* ========== Responsive ========== */
+@media (max-width: 1100px) {
+  .sectiongrid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lowergrid { grid-template-columns: 1fr; }
+  .wrap { padding: 20px 16px 40px; }
+  .hero { flex-direction: column; gap: 16px; }
+  h1 { font-size: 24px; }
+}
+
+@media (max-width: 520px) {
+  .grid { grid-template-columns: 1fr; }
+  .metric .value { font-size: 22px; }
+  .card { padding: 16px; }
+  .filters { gap: 8px; }
+}
+
+/* ========== Print ========== */
+@media print {
+  body { background: #fff; }
+  .btn, .menuWrap, #adminToggle, #adminPanel, .uploadbox { display: none !important; }
+  .card { box-shadow: none; border: 1px solid #ddd; }
+  .wrap { padding: 12px; max-width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ========== HEADER ========== -->
+<header class="hero">
+  <div class="hero-left">
+    <div class="eyebrow">Management overview · marketplace performance</div>
+    <h1>WRAP n PAK Dashboard</h1>
+    <p>Daily and weekly sales, advertising, ROI, and settlement tracking · data updated by admin</p>
+  </div>
+  <div class="filters">
+    <div class="menuWrap">
+      <button class="btn menuBtn" aria-label="Open marketplace menu" onclick="toggleMarketplaceMenu()">☰</button>
+      <div class="menuDropdown" id="marketplaceMenu">
+        <button class="menuOption active" id="amazonMenuOption" onclick="switchMarketplace('amazon')">Amazon</button>
+        <button class="menuOption" id="meeshoMenuOption" onclick="switchMarketplace('meesho')">Meesho</button>
+        <button class="menuOption" id="blinkitMenuOption" onclick="switchMarketplace('blinkit')">Blinkit</button>
+        <button class="menuOption" id="instamartMenuOption" onclick="switchMarketplace('instamart')">Instamart</button>
+      </div>
+    </div>
+    <span class="tag" id="marketplaceTag">Amazon · Sep 2026</span>
+    <button class="btn theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode" aria-label="Toggle dark mode">
+      <span class="icon-moon">🌙</span>
+      <span class="icon-sun">☀️</span>
+    </button>
+    <button class="btn" onclick="window.print()">Print / Save PDF</button>
+    <button class="btn primary" id="adminToggle" onclick="toggleAdmin()">Admin login</button>
+  </div>
+</header>
+
+<!-- ========== DATE RANGE ========== -->
+<section class="card section-spacer">
+  <div class="cardhead">
+    <div>
+      <h2>Sales overview date range</h2>
+      <div class="small">KPI totals default to the latest 7 available sales days</div>
+    </div>
+    <div class="filters">
+      <label>From <input type="date" id="kpiFrom"></label>
+      <label>To <input type="date" id="kpiTo"></label>
+      <button class="btn" type="button" onclick="resetKpiDates()">Last 7 days</button>
+    </div>
+  </div>
+</section>
+
+<!-- ========== KPI METRICS ========== -->
+<div class="grid">
+  <div class="card metric">
+    <div class="label">Total Orders</div>
+    <div class="value" id="ordersKpi">—</div>
+    <div class="foot">From uploaded E.Com report</div>
+  </div>
+  <div class="card metric">
+    <div class="label">Units Sold</div>
+    <div class="value" id="unitsKpi">—</div>
+    <div class="foot">Total units across retained dates</div>
+  </div>
+  <div class="card metric">
+    <div class="label">Marketplace Revenue</div>
+    <div class="value" id="revenueKpi">—</div>
+    <div class="foot">Revenue across retained dates</div>
+  </div>
+  <div class="card metric" id="gmvMetric" style="display:none">
+    <div class="label">GMV</div>
+    <div class="value" id="gmvKpi">—</div>
+    <div class="foot">Gross merchandise value</div>
+  </div>
+  <div class="card metric" id="discountMetric" style="display:none">
+    <div class="label">Discount</div>
+    <div class="value" id="discountKpi">—</div>
+    <div class="foot">Discount spend</div>
+  </div>
+  <div class="card metric">
+    <div class="label">Ad Spend</div>
+    <div class="value" id="adsKpi">—</div>
+    <div class="foot" id="adsShare">From supplied Amazon advertising report</div>
+  </div>
+</div>
+
+<!-- ========== CHART + WEEKLY ========== -->
+<div class="sectiongrid">
+  <section class="card">
+    <div class="cardhead">
+      <div>
+        <h2>Performance trend</h2>
+        <div class="small">Choose daily or weekly aggregation</div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" id="dailyTab" onclick="setMode('daily')">Daily</button>
+        <button class="tab" id="weeklyTab" onclick="setMode('weekly')">Weekly</button>
+      </div>
+    </div>
+    <div class="filters" style="margin:10px 0 4px">
+      <label>From <input type="date" id="chartFrom"></label>
+      <label>To <input type="date" id="chartTo"></label>
+      <button class="btn" type="button" onclick="resetChartDates()">Last 7 days</button>
+    </div>
+    <div id="chartTitle" class="small" style="margin-bottom:6px">Daily advertising spend</div>
+    <div class="chart" id="chart"></div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--green)"></i>Revenue (₹)</span>
+      <span><i class="dot" style="background:var(--accent)"></i>Ad spend (₹, excluding GST where available)</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="cardhead">
+      <div>
+        <h2>Weekly summary</h2>
+        <div class="small">Calendar weeks · ROI = revenue ÷ ad spend</div>
+      </div>
+      <span class="tag">All available dates</span>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th>Orders</th>
+            <th>Units</th>
+            <th>Revenue</th>
+            <th>Ad spend</th>
+            <th>ROI</th>
+          </tr>
+        </thead>
+        <tbody id="weeklyBody"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- ========== DAILY REPORT ========== -->
+<section class="card section-spacer">
+  <div class="cardhead">
+    <div>
+      <h2>Daily report</h2>
+      <div class="small">Filter the table by date range</div>
+    </div>
+    <div class="filters">
+      <label>From <input type="date" id="tableFrom"></label>
+      <label>To <input type="date" id="tableTo"></label>
+      <button class="btn" type="button" onclick="resetTableDates()">Reset</button>
+      <button class="btn" onclick="downloadCsv()">Export daily CSV</button>
+    </div>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Orders</th>
+          <th>Units</th>
+          <th>Revenue (₹)</th>
+          <th id="gmvHeader" style="display:none">GMV (₹)</th>
+          <th id="discountHeader" style="display:none">Discount (₹)</th>
+          <th>Ad spend (₹)</th>
+          <th>ROI</th>
+        </tr>
+      </thead>
+      <tbody id="dailyBody"></tbody>
+      <tfoot id="dailyFoot"></tfoot>
+    </table>
+  </div>
+</section>
+
+<!-- ========== INSTAMART ENTRIES ========== -->
+<section class="card" id="instamartEntries" style="display:none;margin-bottom:16px">
+  <div class="cardhead">
+    <div>
+      <h2>Instamart manual entries</h2>
+      <div class="small">Record bank settlements and debit/credit notes</div>
+    </div>
+  </div>
+  <div class="filters">
+    <label>Entry type
+      <select id="instaEntryType">
+        <option value="settlement">Bank settlement</option>
+        <option value="debit">Debit note</option>
+        <option value="credit">Credit note</option>
+      </select>
+    </label>
+    <label>Date <input type="date" id="instaEntryDate"></label>
+    <label>Reference / UTR <input type="text" id="instaEntryRef" placeholder="Optional reference"></label>
+    <label>Amount (₹) <input type="number" id="instaEntryAmount" min="0" step="0.01"></label>
+    <button class="btn primary" onclick="saveInstamartEntry()">Add entry</button>
+  </div>
+  <div class="tablewrap" style="margin-top:14px">
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Date</th>
+          <th>Reference</th>
+          <th>Amount (₹)</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="instaEntryBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ========== SETTLEMENT MANAGEMENT ========== -->
+<section class="card section-spacer" id="settlementManagementCard">
+  <div class="cardhead">
+    <div>
+      <h2>Bank settlement summary</h2>
+      <div class="small">Marketplace settlement records grouped by settlement date</div>
+    </div>
+    <span class="tag" id="settlementManagementStatus">No settlement data loaded</span>
+  </div>
+  <div class="filters" style="margin:0 0 14px">
+    <label>From <input type="date" id="settlementFrom"></label>
+    <label>To <input type="date" id="settlementTo"></label>
+    <button class="btn" type="button" onclick="resetSettlementDates()">Reset dates</button>
+  </div>
+  <div class="small" id="settlementFormula" style="margin:-4px 0 14px">Amazon transfer rows grouped by Transaction Release Date.</div>
+  <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:14px">
+    <div class="card metric">
+      <div class="label">Transfer records</div>
+      <div class="value" id="settlementCount">0</div>
+    </div>
+    <div class="card metric">
+      <div class="label">Total settlement amount</div>
+      <div class="value" id="settlementGrandTotal">₹0</div>
+    </div>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Settlement date</th>
+          <th>Records</th>
+          <th>Gross payment / transfer (₹)</th>
+          <th>Ads spend incl. GST (₹)</th>
+          <th>Net settlement (₹)</th>
+        </tr>
+      </thead>
+      <tbody id="settlementManagementBody">
+        <tr><td colspan="5">Enter or update settlement records in Admin mode to display results here.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ========== ADMIN PANEL ========== -->
+<section class="card" id="adminPanel" style="display:none;margin-bottom:16px">
+  <div class="cardhead">
+    <div>
+      <h2>Admin controls · daily data update</h2>
+      <div class="small">Admin-only controls in this local prototype</div>
+    </div>
+    <span class="tag">Admin mode</span>
+  </div>
+  <div class="lowergrid">
+    <div class="uploadbox">
+      <label for="salesUpdateFile">Upload marketplace sales report (.xlsx / .xls / .csv) — select marketplace from menu</label>
+      <input type="file" id="salesUpdateFile" accept=".xlsx,.xls,.csv"/>
+      <button class="btn primary" type="button" id="applySalesBtn" style="margin-top:10px">Update Sales</button>
+      <div class="status" id="salesUpdateStatus">Choose the updated workbook, then click Update Sales. New dates are added and matching dates are updated; older dates are retained.</div>
+    </div>
+    <div class="uploadbox">
+      <label for="adsSheetUrl">Google Sheet link for marketing spend</label>
+      <input id="adsSheetUrl" type="url" style="width:100%;margin-bottom:8px" value="https://docs.google.com/spreadsheets/d/17ipeAvcEb97zIbKemEIriXVJbg5ucCgejNgXmgLNmqU/edit?gid=1928823255#gid=1928823255" placeholder="Paste Google Sheet URL"/>
+      <button class="btn primary" type="button" id="updateAdsSheetBtn">Update from Google Sheet</button>
+      <div class="small" style="margin-top:8px">The sheet must allow access to the admin browser (e.g. Anyone with the link can view). If direct reading is blocked, download the sheet as CSV/XLSX and use the fallback upload.</div>
+      <label for="adsUpdateFile" style="margin-top:14px">Fallback: upload downloaded ad report</label>
+      <input type="file" id="adsUpdateFile" accept=".xlsx,.xls,.csv"/>
+      <button class="btn" type="button" id="applyAdsBtn" style="margin-top:8px">Update from File</button>
+      <div class="status" id="adsUpdateStatus">No marketing data update applied yet.</div>
+    </div>
+  </div>
+  <div class="note"><b>Admin PIN:</b> <code>2468</code> (demo only; change ADMIN_PIN in the HTML source). Data is saved in this browser only. A client-side PIN is not secure authentication and does not sync across computers.</div>
+</section>
+
+<!-- ========== SETTLEMENT + RECHARGE ========== -->
+<div class="lowergrid">
+  <section class="card admin-entry" id="settlementCard">
+    <div class="cardhead">
+      <div>
+        <h2>Bank settlement</h2>
+        <div class="small">Upload a settlement file to review it here</div>
+      </div>
+      <span class="tag">Manual upload</span>
+    </div>
+    <div class="uploadbox">
+      <label for="settlementFile">Choose bank settlement file</label>
+      <input type="file" id="settlementFile" accept=".csv,.xlsx,.xls,.zip"/>
+      <button class="btn primary" type="button" id="applySettlementBtn" style="margin-top:10px">Update Settlement</button>
+      <div class="status" id="settlementStatus">No settlement file uploaded yet.</div>
+      <div id="settlementColumns" style="display:none;margin-top:10px">
+        <label for="amountColumn">Amount column to total</label>
+        <select id="amountColumn"></select>
+        <div class="status" id="settlementTotal"></div>
+      </div>
+    </div>
+    <div id="blinkitSettlementEditor" style="display:none;margin-top:14px">
+      <div class="small" style="margin-bottom:10px">Enter payout details from the settlement screenshot. No bank file upload is needed for Blinkit.</div>
+      <div class="filters" style="align-items:end;margin-bottom:12px">
+        <label>Time Period <input id="blinkitPeriod" type="text" placeholder="1 Oct 26 - 15 Oct 26"></label>
+        <label>Payout Date <input id="blinkitPayoutDate" type="date"></label>
+        <label>UTR <input id="blinkitUtr" type="text" placeholder="CMS..."></label>
+        <label>Payout (₹) <input id="blinkitPayout" type="number" min="0" step="0.01" placeholder="0.00"></label>
+        <button class="btn primary" type="button" onclick="saveBlinkitPayout()">Add payout</button>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time Period</th>
+              <th>Payout Date</th>
+              <th>UTR</th>
+              <th>Payout (₹)</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="blinkitPayoutBody"></tbody>
+        </table>
+      </div>
+      <div class="status" id="blinkitPayoutStatus">Payout records are saved in this browser.</div>
+    </div>
+    <div class="note">This prototype reads the uploaded file in this browser. It does not verify bank credits against Amazon or upload the file to a server. Keep the original bank file for audit.</div>
+  </section>
+
+  <section class="card" id="rechargeCard">
+    <div class="cardhead">
+      <div>
+        <h2>Recharge bills & history</h2>
+        <div class="small">Upload a recharge bill, confirm its date and amount, then save the record</div>
+      </div>
+      <span class="tag">Bill upload</span>
+    </div>
+    <div class="uploadbox" id="rechargeEditor" style="display:none">
+      <label for="rechargeBillFile">Upload recharge bill (PDF / image / Excel / CSV)</label>
+      <input id="rechargeBillFile" type="file" accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls,.csv"/>
+      <div class="status" id="rechargeBillStatus">Choose a bill. Text-based PDF/Excel/CSV may be read automatically; scanned bills can be entered manually below.</div>
+      <div class="recharge" style="margin-top:12px">
+        <label for="rechargeDateInput">Recharge date</label>
+        <input id="rechargeDateInput" type="date"/>
+        <label for="rechargeInput">Amount (₹)</label>
+        <input id="rechargeInput" type="number" min="0" step="0.01" placeholder="Bill amount"/>
+        <button class="btn primary" id="saveRechargeBtn" type="button">Save recharge</button>
+      </div>
+      <div class="recharge" style="margin-top:10px">
+        <label for="rechargeManageSelect">Manage saved record</label>
+        <select id="rechargeManageSelect" style="min-width:220px"></select>
+        <button class="btn" type="button" id="editSelectedRechargeBtn">Edit selected</button>
+        <button class="btn" type="button" id="deleteSelectedRechargeBtn">Delete selected</button>
+      </div>
+    </div>
+    <div class="status" id="rechargeStatus">No recharge bills recorded yet.</div>
+    <div class="tablewrap" style="margin-top:14px">
+      <table>
+        <thead>
+          <tr>
+            <th>Recharge date</th>
+            <th>Bill / file</th>
+            <th>Amount (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="rechargeHistoryBody"></tbody>
+        <tfoot id="rechargeHistoryFoot"></tfoot>
+      </table>
+    </div>
+    <div class="note">History is retained in this browser. Shared updates across computers require hosted storage.</div>
+  </section>
+</div>
+
+<div class="footnote">
+  ROI is calculated as Revenue ÷ Ad Spend and displayed as a multiple (e.g. 3.2x). It is not profit ROI; true profit ROI requires product cost and other expenses. Admin updates are saved only in this browser. For secure role-based access and shared updates across computers, this dashboard must be hosted with a backend/login.
+</div>
+
+</div><!-- /.wrap -->
+
+<script>
+/* ========== Dark mode ========== */
+(function initTheme(){
+  const saved = localStorage.getItem('wrapNpakTheme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (saved === 'dark' || (!saved && prefersDark)) {
+    document.documentElement.classList.add('dark');
+  }
+})();
+function toggleTheme(){
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('wrapNpakTheme', isDark ? 'dark' : 'light');
+  if (typeof renderChart === 'function') renderChart();
+}
+
+/* ========== ALL ORIGINAL JAVASCRIPT PRESERVED ========== */
+let DATA=[{"date": "2026-09-01", "day": 1, "orders": 19, "units": 19, "revenue": 4161.0, "adSpend": 1521.23}, {"date": "2026-09-02", "day": 2, "orders": 21, "units": 23, "revenue": 5406.0, "adSpend": 1107.85}, {"date": "2026-09-03", "day": 3, "orders": 15, "units": 19, "revenue": 4501.0, "adSpend": 1057.77}, {"date": "2026-09-04", "day": 4, "orders": 7, "units": 7, "revenue": 1533.0, "adSpend": 815.58}, {"date": "2026-09-05", "day": 5, "orders": 15, "units": 21, "revenue": 4380.0, "adSpend": 899.48}, {"date": "2026-09-06", "day": 6, "orders": 24, "units": 28, "revenue": 6132.0, "adSpend": 1107.15}, {"date": "2026-09-07", "day": 7, "orders": 10, "units": 11, "revenue": 2620.0, "adSpend": 954.62}, {"date": "2026-09-08", "day": 8, "orders": 26, "units": 50, "revenue": 10901.0, "adSpend": 786.01}, {"date": "2026-09-09", "day": 9, "orders": 10, "units": 12, "revenue": 2988.0, "adSpend": 876.33}, {"date": "2026-09-10", "day": 10, "orders": 7, "units": 10, "revenue": 2190.0, "adSpend": 841.64}, {"date": "2026-09-11", "day": 11, "orders": 21, "units": 27, "revenue": 5813.0, "adSpend": 861.57}, {"date": "2026-09-12", "day": 12, "orders": 9, "units": 11, "revenue": 2389.0, "adSpend": 1106.04}, {"date": "2026-09-13", "day": 13, "orders": 13, "units": 13, "revenue": 2787.0, "adSpend": 803.26}, {"date": "2026-09-14", "day": 14, "orders": 14, "units": 19, "revenue": 4152.0, "adSpend": 882.74}, {"date": "2026-09-15", "day": 15, "orders": 13, "units": 13, "revenue": 3176.0, "adSpend": 1210.44}, {"date": "2026-09-16", "day": 16, "orders": 23, "units": 26, "revenue": 6233.0, "adSpend": 1313.24}, {"date": "2026-09-17", "day": 17, "orders": 17, "units": 18, "revenue": 4560.0, "adSpend": 1426.75}, {"date": "2026-09-18", "day": 18, "orders": 24, "units": 26, "revenue": 6263.0, "adSpend": 1578.79}, {"date": "2026-09-19", "day": 19, "orders": 16, "units": 16, "revenue": 3833.0, "adSpend": 1195.92}, {"date": "2026-09-20", "day": 20, "orders": 19, "units": 19, "revenue": 4061.0, "adSpend": 1363.61}, {"date": "2026-09-21", "day": 21, "orders": 30, "units": 31, "revenue": 6540.0, "adSpend": 1695.96}, {"date": "2026-09-22", "day": 22, "orders": 24, "units": 25, "revenue": 5674.0, "adSpend": 1627.19}, {"date": "2026-09-23", "day": 23, "orders": 23, "units": 26, "revenue": 6074.0, "adSpend": 1633.89}, {"date": "2026-09-24", "day": 24, "orders": 13, "units": 34, "revenue": 7406.0, "adSpend": 2406.76}, {"date": "2026-09-25", "day": 25, "orders": 15, "units": 20, "revenue": 4251.0, "adSpend": 2196.02}, {"date": "2026-09-26", "day": 26, "orders": 11, "units": 13, "revenue": 2750.0, "adSpend": 2062.41}, {"date": "2026-09-27", "day": 27, "orders": 14, "units": 17, "revenue": 3583.0, "adSpend": 2103.58}, {"date": "2026-09-28", "day": 28, "orders": 21, "units": 28, "revenue": 5952.0, "adSpend": 2083.97}, {"date": "2026-09-29", "day": 29, "orders": 15, "units": 16, "revenue": 3404.0, "adSpend": 2129.2}, {"date": "2026-09-30", "day": 30, "orders": 24, "units": 35, "revenue": 7565.0, "adSpend": 2230.64}];
+const DEFAULT_DATA=DATA.map(x=>({...x}));
+const MEESHO_DEFAULT_DATA=[{"date":"2026-09-01","day":1,"orders":14,"units":14,"revenue":2178.43,"adSpend":864.33},{"date":"2026-09-02","day":2,"orders":18,"units":18,"revenue":2744.69,"adSpend":889.12},{"date":"2026-09-03","day":3,"orders":13,"units":13,"revenue":1674.22,"adSpend":387.06},{"date":"2026-09-04","day":4,"orders":14,"units":14,"revenue":1889.05,"adSpend":219.0},{"date":"2026-09-05","day":5,"orders":10,"units":13,"revenue":1628.31,"adSpend":285.3},{"date":"2026-09-06","day":6,"orders":60,"units":60,"revenue":7356.52,"adSpend":1461.22},{"date":"2026-09-07","day":7,"orders":18,"units":18,"revenue":2817.15,"adSpend":492.05},{"date":"2026-09-08","day":8,"orders":11,"units":11,"revenue":1609.49,"adSpend":235.25},{"date":"2026-09-09","day":9,"orders":19,"units":19,"revenue":2743.55,"adSpend":225.74},{"date":"2026-09-10","day":10,"orders":8,"units":8,"revenue":1015.35,"adSpend":188.83},{"date":"2026-09-11","day":11,"orders":10,"units":10,"revenue":1536.22,"adSpend":401.54},{"date":"2026-09-12","day":12,"orders":16,"units":15,"revenue":2047.63,"adSpend":312.86},{"date":"2026-09-13","day":13,"orders":7,"units":7,"revenue":862.55,"adSpend":236.35},{"date":"2026-09-14","day":14,"orders":7,"units":7,"revenue":816.83,"adSpend":529.97},{"date":"2026-09-15","day":15,"orders":6,"units":6,"revenue":989.53,"adSpend":30.28},{"date":"2026-09-16","day":16,"orders":11,"units":14,"revenue":2355.45,"adSpend":348.35},{"date":"2026-09-17","day":17,"orders":19,"units":19,"revenue":2863.04,"adSpend":777.36},{"date":"2026-09-18","day":18,"orders":9,"units":9,"revenue":1268.81,"adSpend":295.89},{"date":"2026-09-19","day":19,"orders":33,"units":33,"revenue":4138.27,"adSpend":1278.03},{"date":"2026-09-20","day":20,"orders":44,"units":45,"revenue":5756.0,"adSpend":2151.04},{"date":"2026-09-21","day":21,"orders":21,"units":22,"revenue":2815.6,"adSpend":1188.46},{"date":"2026-09-22","day":22,"orders":22,"units":22,"revenue":3485.62,"adSpend":608.77},{"date":"2026-09-23","day":23,"orders":9,"units":9,"revenue":1397.53,"adSpend":357.09},{"date":"2026-09-24","day":24,"orders":14,"units":15,"revenue":2185.04,"adSpend":500.26},{"date":"2026-09-25","day":25,"orders":24,"units":23,"revenue":3673.59,"adSpend":414.47},{"date":"2026-09-26","day":26,"orders":11,"units":11,"revenue":1703.89,"adSpend":375.47},{"date":"2026-09-27","day":27,"orders":12,"units":15,"revenue":2285.82,"adSpend":359.37},{"date":"2026-09-28","day":28,"orders":19,"units":19,"revenue":2568.91,"adSpend":420.63},{"date":"2026-09-29","day":29,"orders":8,"units":8,"revenue":1250.05,"adSpend":0},{"date":"2026-09-30","day":30,"orders":27,"units":27,"revenue":3825.11,"adSpend":0}];
+const MEESHO_SETTLEMENT_DEFAULT=[{"date":"2026-09-01","amount":1138.19,"grossPayment":1647.65,"adsCostInclGST":509.46,"count":16,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-02","amount":685.01,"grossPayment":1379.74,"adsCostInclGST":694.73,"count":14,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-03","amount":560.63,"grossPayment":1580.55,"adsCostInclGST":1019.92,"count":12,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-04","amount":628.17,"grossPayment":1677.32,"adsCostInclGST":1049.15,"count":14,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-07","amount":4031.34,"grossPayment":5083.14,"adsCostInclGST":1051.8,"count":37,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-10","amount":589.28,"grossPayment":3171.75,"adsCostInclGST":2582.47,"count":33,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-11","amount":1797.76,"grossPayment":2064.13,"adsCostInclGST":266.37,"count":24,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-14","amount":6160.36,"grossPayment":7226.17,"adsCostInclGST":1065.81,"count":73,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-15","amount":1708.61,"grossPayment":1987.5,"adsCostInclGST":278.89,"count":20,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-17","amount":1523.44,"grossPayment":2184.52,"adsCostInclGST":661.08,"count":38,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-18","amount":2466.04,"grossPayment":2877.1,"adsCostInclGST":411.06,"count":32,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-21","amount":4246.18,"grossPayment":7020.7,"adsCostInclGST":2774.52,"count":68,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-25","amount":1078.1,"grossPayment":6158.44,"adsCostInclGST":5080.34,"count":70,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-28","amount":1499.66,"grossPayment":3022.11,"adsCostInclGST":1522.45,"count":33,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-29","amount":1830.44,"grossPayment":2254.5,"adsCostInclGST":424.06,"count":18,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"},{"date":"2026-09-30","amount":1395.83,"grossPayment":1892.18,"adsCostInclGST":496.35,"count":26,"sourceType":"Meesho final settlement less Total Ads Cost incl. GST","file":"meesho payment workbook"}];
+const BLINKIT_DEFAULT_DATA=[{"date":"2026-09-01","day":1,"orders":65,"units":65,"revenue":13135.0,"adSpend":0},{"date":"2026-09-02","day":2,"orders":64,"units":67,"revenue":13493.0,"adSpend":0},{"date":"2026-09-03","day":3,"orders":36,"units":36,"revenue":7304.0,"adSpend":0},{"date":"2026-09-04","day":4,"orders":22,"units":22,"revenue":4498.0,"adSpend":0},{"date":"2026-09-05","day":5,"orders":12,"units":12,"revenue":2518.0,"adSpend":0},{"date":"2026-09-06","day":6,"orders":28,"units":28,"revenue":5922.0,"adSpend":0},{"date":"2026-09-07","day":7,"orders":21,"units":22,"revenue":4518.0,"adSpend":0},{"date":"2026-09-08","day":8,"orders":25,"units":25,"revenue":5125.0,"adSpend":0},{"date":"2026-09-09","day":9,"orders":14,"units":14,"revenue":2936.0,"adSpend":0},{"date":"2026-09-10","day":10,"orders":10,"units":10,"revenue":2130.0,"adSpend":0},{"date":"2026-09-11","day":11,"orders":5,"units":5,"revenue":1095.0,"adSpend":0},{"date":"2026-09-12","day":12,"orders":2,"units":2,"revenue":418.0,"adSpend":0},{"date":"2026-09-13","day":13,"orders":10,"units":10,"revenue":2130.0,"adSpend":0},{"date":"2026-09-14","day":14,"orders":11,"units":11,"revenue":2389.0,"adSpend":0},{"date":"2026-09-15","day":15,"orders":7,"units":7,"revenue":1463.0,"adSpend":0},{"date":"2026-09-16","day":16,"orders":40,"units":41,"revenue":8219.0,"adSpend":0},{"date":"2026-09-17","day":17,"orders":11,"units":11,"revenue":2209.0,"adSpend":0},{"date":"2026-09-18","day":18,"orders":9,"units":11,"revenue":2249.0,"adSpend":0},{"date":"2026-09-19","day":19,"orders":15,"units":17,"revenue":3403.0,"adSpend":0},{"date":"2026-09-20","day":20,"orders":55,"units":59,"revenue":11781.0,"adSpend":0},{"date":"2026-09-21","day":21,"orders":46,"units":48,"revenue":9652.0,"adSpend":0},{"date":"2026-09-22","day":22,"orders":50,"units":51,"revenue":10259.0,"adSpend":0},{"date":"2026-09-23","day":23,"orders":47,"units":47,"revenue":9373.0,"adSpend":0},{"date":"2026-09-24","day":24,"orders":50,"units":51,"revenue":10249.0,"adSpend":0},{"date":"2026-09-25","day":25,"orders":31,"units":33,"revenue":6697.0,"adSpend":0},{"date":"2026-09-26","day":26,"orders":23,"units":24,"revenue":4866.0,"adSpend":0},{"date":"2026-09-27","day":27,"orders":36,"units":36,"revenue":7224.0,"adSpend":0},{"date":"2026-09-28","day":28,"orders":35,"units":35,"revenue":7025.0,"adSpend":0},{"date":"2026-09-29","day":29,"orders":41,"units":41,"revenue":8309.0,"adSpend":0},{"date":"2026-09-30","day":30,"orders":44,"units":44,"revenue":8876.0,"adSpend":0},{"date":"2026-10-01","day":1,"orders":33,"units":33,"revenue":6607.0,"adSpend":0}];
+const BLINKIT_SETTLEMENT_DEFAULT=[
+ {date:'2026-10-19',amount:39441.71,grossPayment:39441.71,adsCostInclGST:0,count:1,timePeriod:'1 Oct 26 - 15 Oct 26',payoutDate:'2026-10-19',utr:'CMS5935540800',sourceType:'Blinkit payout image'},
+ {date:'2026-10-05',amount:89368.08,grossPayment:89368.08,adsCostInclGST:0,count:1,timePeriod:'16 Sep 26 - 30 Sep 26',payoutDate:'2026-10-05',utr:'CMS5909835855',sourceType:'Blinkit payout image'},
+ {date:'2026-09-18',amount:36208.00,grossPayment:36208.00,adsCostInclGST:0,count:1,timePeriod:'1 Sep 26 - 15 Sep 26',payoutDate:'2026-09-18',utr:'CMS5884398965',sourceType:'Blinkit payout image'},
+ {date:'2026-09-03',amount:85710.14,grossPayment:85710.14,adsCostInclGST:0,count:1,timePeriod:'16 Aug 26 - 31 Aug 26',payoutDate:'2026-09-03',utr:'CMS5860946515',sourceType:'Blinkit payout image'},
+ {date:'2026-08-18',amount:35802.14,grossPayment:35802.14,adsCostInclGST:0,count:1,timePeriod:'1 Aug 26 - 15 Aug 26',payoutDate:'2026-08-18',utr:'CMS5830871646',sourceType:'Blinkit payout image'}
+];
+const INSTAMART_SALES_DEFAULT=[{"date": "2026-09-26", "day": 26, "orders": 1, "units": 1, "revenue": 299.0, "adSpend": 0, "gmv": 299.0, "discount": 100.0}, {"date": "2026-09-27", "day": 27, "orders": 2, "units": 3, "revenue": 897.0, "adSpend": 0, "gmv": 897.0, "discount": 300.0}, {"date": "2026-09-28", "day": 28, "orders": 3, "units": 4, "revenue": 1297.0, "adSpend": 0, "gmv": 1297.0, "discount": 481.0}, {"date": "2026-09-29", "day": 29, "orders": 1, "units": 2, "revenue": 598.0, "adSpend": 0, "gmv": 598.0, "discount": 200.0}, {"date": "2026-09-30", "day": 30, "orders": 1, "units": 2, "revenue": 598.0, "adSpend": 0, "gmv": 598.0, "discount": 200.0}, {"date": "2026-10-01", "day": 1, "orders": 2, "units": 4, "revenue": 1196.0, "adSpend": 0, "gmv": 1196.0, "discount": 400.0}, {"date": "2026-10-02", "day": 2, "orders": 2, "units": 3, "revenue": 998.0, "adSpend": 0, "gmv": 998.0, "discount": 381.0}, {"date": "2026-10-03", "day": 3, "orders": 1, "units": 1, "revenue": 400.0, "adSpend": 0, "gmv": 400.0, "discount": 151.0}, {"date": "2026-10-04", "day": 4, "orders": 1, "units": 1, "revenue": 299.0, "adSpend": 0, "gmv": 299.0, "discount": 100.0}, {"date": "2026-10-05", "day": 5, "orders": 2, "units": 4, "revenue": 1297.0, "adSpend": 0, "gmv": 1297.0, "discount": 451.0}, {"date": "2026-10-06", "day": 6, "orders": 2, "units": 3, "revenue": 897.0, "adSpend": 0, "gmv": 897.0, "discount": 300.0}, {"date": "2026-10-07", "day": 7, "orders": 2, "units": 6, "revenue": 1794.0, "adSpend": 0, "gmv": 1794.0, "discount": 600.0}, {"date": "2026-10-08", "day": 8, "orders": 3, "units": 6, "revenue": 2097.0, "adSpend": 0, "gmv": 2097.0, "discount": 843.0}, {"date": "2026-10-09", "day": 9, "orders": 2, "units": 4, "revenue": 1196.0, "adSpend": 0, "gmv": 1196.0, "discount": 400.0}, {"date": "2026-10-11", "day": 11, "orders": 1, "units": 1, "revenue": 299.0, "adSpend": 0, "gmv": 299.0, "discount": 100.0}, {"date": "2026-10-12", "day": 12, "orders": 1, "units": 1, "revenue": 299.0, "adSpend": 0, "gmv": 299.0, "discount": 100.0}, {"date": "2026-10-13", "day": 13, "orders": 1, "units": 1, "revenue": 299.0, "adSpend": 0, "gmv": 299.0, "discount": 100.0}, {"date": "2026-10-14", "day": 14, "orders": 1, "units": 1, "revenue": 400.0, "adSpend": 0, "gmv": 400.0, "discount": 181.0}, {"date": "2026-10-15", "day": 15, "orders": 2, "units": 3, "revenue": 897.0, "adSpend": 0, "gmv": 897.0, "discount": 300.0}, {"date": "2026-10-16", "day": 16, "orders": 2, "units": 3, "revenue": 897.0, "adSpend": 0, "gmv": 897.0, "discount": 300.0}, {"date": "2026-10-17", "day": 17, "orders": 2, "units": 2, "revenue": 699.0, "adSpend": 0, "gmv": 699.0, "discount": 251.0}, {"date": "2026-10-18", "day": 18, "orders": 2, "units": 3, "revenue": 1099.0, "adSpend": 0, "gmv": 1099.0, "discount": 402.0}, {"date": "2026-10-19", "day": 19, "orders": 2, "units": 2, "revenue": 699.0, "adSpend": 0, "gmv": 699.0, "discount": 251.0}, {"date": "2026-10-20", "day": 20, "orders": 1, "units": 2, "revenue": 598.0, "adSpend": 0, "gmv": 598.0, "discount": 200.0}, {"date": "2026-10-21", "day": 21, "orders": 2, "units": 2, "revenue": 598.0, "adSpend": 0, "gmv": 598.0, "discount": 200.0}]; let instamartEntries=[]; let activePlatform="amazon";
+const ADS_SHEET_URLS={amazon:"https://docs.google.com/spreadsheets/d/17ipeAvcEb97zIbKemEIriXVJbg5ucCgejNgXmgLNmqU/edit?gid=1928823255#gid=1928823255",meesho:"https://docs.google.com/spreadsheets/d/12LVCu9YGpFgrbMan4hjVhtnsQuYHOJk2GmlGx5KOg58/edit?gid=2093634636#gid=2093634636",blinkit:"https://docs.google.com/spreadsheets/d/1MlTBd4ikXgmYDvMaPRYz9GNTGpdLY_WScjDD0U-KFmE/edit?gid=1729332536#gid=1729332536"};
+const ADMIN_PIN='2468';
+const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2,minimumFractionDigits:0});
+const number=n=>Number(n||0).toLocaleString('en-IN');
+function formatDate(iso){const m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return String(iso||'');const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return `${m[3]}-${months[Number(m[2])-1]||m[2]}-${m[1].slice(-2)}`}
+const sum=(arr,k)=>arr.reduce((s,x)=>s+Number(x[k]||0),0);
+function roi(revenue,adSpend){return adSpend>0?(revenue/adSpend):null}
+function roiLabel(revenue,adSpend){const v=roi(revenue,adSpend);return v===null?'—':v.toFixed(2)+'x'}
+function refreshDashboard(){
+ DATA.sort((a,b)=>a.date.localeCompare(b.date));
+ const months=[...new Set(DATA.map(x=>x.date.slice(0,7)))];const monthText=months.map(m=>new Date(m+'-01T00:00:00Z').toLocaleDateString('en-US',{month:'short',year:'numeric',timeZone:'UTC'})).join(', ');const heroTag=document.querySelector('.hero .tag');if(heroTag)heroTag.textContent=platformName()+' · '+monthText;
+ applyDateDefaults();const kpiRows=dateFiltered(DATA,'kpiFrom','kpiTo');const totalOrders=sum(kpiRows,'orders'),totalUnits=sum(kpiRows,'units'),totalRevenue=sum(kpiRows,'revenue'),totalAds=sum(kpiRows,'adSpend');document.getElementById('gmvKpi').textContent=money(sum(kpiRows,'gmv'));document.getElementById('discountKpi').textContent=money(sum(kpiRows,'discount'));
+ document.getElementById('ordersKpi').textContent=number(totalOrders);document.getElementById('unitsKpi').textContent=number(totalUnits);document.getElementById('revenueKpi').textContent=money(totalRevenue);document.getElementById('adsKpi').textContent=money(totalAds);document.getElementById('adsShare').textContent=(totalRevenue?((totalAds/totalRevenue)*100).toFixed(1)+'% of filtered revenue':'No ad spend imported for selected dates')+' · '+platformName()+' ads sheet';
+ function weekStart(date){const d=new Date(date+'T00:00:00Z');const dow=(d.getUTCDay()+6)%7;d.setUTCDate(d.getUTCDate()-dow);return d.toISOString().slice(0,10)}
+ function weekLabelFor(date){const start=weekStart(date),d=new Date(start+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+6);const end=d.toISOString().slice(0,10);return start+' – '+end}
+ const labels=[...new Set(DATA.map(x=>weekLabelFor(x.date)))];
+ const WEEKS=labels.map(label=>{const a=DATA.filter(x=>weekLabelFor(x.date)===label);return {label,orders:sum(a,'orders'),units:sum(a,'units'),revenue:sum(a,'revenue'),adSpend:sum(a,'adSpend'),days:a.length}});
+ document.getElementById('weeklyBody').innerHTML=WEEKS.map(w=>`<tr><td>${w.label.split(' – ').map(formatDate).join(' – ')}</td><td>${number(w.orders)}</td><td>${number(w.units)}</td><td>${money(w.revenue)}</td><td>${money(w.adSpend)}</td><td>${roiLabel(w.revenue,w.adSpend)}</td></tr>`).join('')+`<tr class="totalrow"><td>Total</td><td>${number(totalOrders)}</td><td>${number(totalUnits)}</td><td>${money(totalRevenue)}</td><td>${money(totalAds)}</td><td>${roiLabel(totalRevenue,totalAds)}</td></tr>`;
+ applyDateDefaults(); renderDailyTable();
+ renderChart();
+}
+let mode='daily';
+function dateFiltered(items,fromId,toId){const from=document.getElementById(fromId)?.value||'',to=document.getElementById(toId)?.value||'';return items.filter(x=>(!from||x.date>=from)&&(!to||x.date<=to))}
+function applyDateDefaults(){const dateNow=new Date();const yesterday=new Date(dateNow.getFullYear(),dateNow.getMonth(),dateNow.getDate()-1);const last7Start=new Date(yesterday.getFullYear(),yesterday.getMonth(),yesterday.getDate()-6);const dateLocal=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;const latest=dateLocal(yesterday),seven=dateLocal(last7Start);for(const id of ['kpiFrom','chartFrom'])if(!document.getElementById(id).dataset.userSet)document.getElementById(id).value=seven;for(const id of ['kpiTo','chartTo'])if(!document.getElementById(id).dataset.userSet)document.getElementById(id).value=latest;
+ const now=new Date(),monthStart=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01',today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');if(!document.getElementById('tableFrom').dataset.userSet)document.getElementById('tableFrom').value=monthStart;if(!document.getElementById('tableTo').dataset.userSet)document.getElementById('tableTo').value=today;}
+function resetKpiDates(){for(const id of ['kpiFrom','kpiTo'])document.getElementById(id).dataset.userSet='';applyDateDefaults();refreshDashboard();}
+
+function renderDailyTable(){const rows=dateFiltered(DATA,'tableFrom','tableTo');const extra=activePlatform==='instamart';document.getElementById('dailyBody').innerHTML=rows.map(x=>`<tr><td>${formatDate(x.date)}</td><td>${number(x.orders)}</td><td>${number(x.units)}</td><td>${money(x.revenue)}</td>${extra?`<td>${money(x.gmv??x.revenue)}</td><td>${money(x.discount)}</td>`:''}<td>${money(x.adSpend)}</td><td>${roiLabel(x.revenue,x.adSpend)}</td></tr>`).join('')||'<tr><td colspan="8" style="text-align:left">No records in selected date range.</td></tr>';document.getElementById('dailyFoot').innerHTML=`<tr class="totalrow"><td>Filtered total</td><td>${number(sum(rows,'orders'))}</td><td>${number(sum(rows,'units'))}</td><td>${money(sum(rows,'revenue'))}</td>${extra?`<td>${money(sum(rows,'gmv'))}</td><td>${money(sum(rows,'discount'))}</td>`:''}<td>${money(sum(rows,'adSpend'))}</td><td>${roiLabel(sum(rows,'revenue'),sum(rows,'adSpend'))}</td></tr>`}
+function resetTableDates(){for(const id of ['tableFrom','tableTo'])document.getElementById(id).dataset.userSet='';applyDateDefaults();renderDailyTable()}
+function resetChartDates(){for(const id of ['chartFrom','chartTo'])document.getElementById(id).dataset.userSet='';applyDateDefaults();renderChart()}
+for(const id of ['tableFrom','tableTo'])document.getElementById(id).addEventListener('change',e=>{e.target.dataset.userSet='1';renderDailyTable()});
+for(const id of ['kpiFrom','kpiTo'])document.getElementById(id).addEventListener('change',e=>{e.target.dataset.userSet='1';refreshDashboard()});
+for(const id of ['chartFrom','chartTo'])document.getElementById(id).addEventListener('change',e=>{e.target.dataset.userSet='1';renderChart()});
+function currentWeeks(items=DATA){function weekStart(date){const d=new Date(date+'T00:00:00Z');const dow=(d.getUTCDay()+6)%7;d.setUTCDate(d.getUTCDate()-dow);return d.toISOString().slice(0,10)}function weekLabel(date){const start=weekStart(date),d=new Date(start+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+6);return start+' – '+d.toISOString().slice(0,10)}const labels=[...new Set(items.map(x=>weekLabel(x.date)))];return labels.map(label=>{const a=items.filter(x=>weekLabel(x.date)===label);return {label,orders:sum(a,'orders'),units:sum(a,'units'),revenue:sum(a,'revenue'),adSpend:sum(a,'adSpend'),days:a.length}})}
+function setMode(m){mode=m;document.getElementById('dailyTab').classList.toggle('active',m==='daily');document.getElementById('weeklyTab').classList.toggle('active',m==='weekly');renderChart()}
+function renderChart(){
+ const filtered=dateFiltered(DATA,'chartFrom','chartTo');const items=(mode==='daily'?filtered:currentWeeks(filtered)).slice().sort((a,b)=>(a.date||a.label).localeCompare(b.date||b.label));const el=document.getElementById('chart');
+ if(!items.length){el.innerHTML='<div class="small" style="padding:20px">No data in selected range.</div>';return;}
+ const W=1200,H=340,L=92,R=96,T=28,B=55,pw=W-L-R,ph=H-T-B,adsMax=Math.max(...items.map(x=>Number(x.adSpend||0)),1),revMax=Math.max(...items.map(x=>Number(x.revenue||0)),1),step=Math.max(1,Math.ceil(items.length/9));
+ const pts=items.map((v,i)=>({v,x:L+pw*(items.length===1?.5:i/(items.length-1)),adsY:T+ph-(Number(v.adSpend||0)/adsMax)*ph,revY:T+ph-(Number(v.revenue||0)/revMax)*ph,label:mode==='daily'?formatDate(v.date):v.label}));
+ const isDark=document.documentElement.classList.contains('dark');
+ const gridStroke=isDark?'#1e293b':'#e2e8f0';
+ const labelFill=isDark?'#94a3b8':'#64748b';
+ const adsColor=isDark?'#3b82f6':'#2563eb';
+ const revColor=isDark?'#10b981':'#059669';
+ const dotStroke=isDark?'#111827':'#fff';
+ let grid='',labels='';for(let g=0;g<=4;g++){const y=T+ph*g/4;grid+=`<line x1="${L}" y1="${y}" x2="${W-R}" y2="${y}" stroke="${gridStroke}"/><text x="${L-12}" y="${y+4}" text-anchor="end" font-size="12" fill="${adsColor}">${money(adsMax*(1-g/4))}</text><text x="${W-R+12}" y="${y+4}" text-anchor="start" font-size="12" fill="${revColor}">${money(revMax*(1-g/4))}</text>`}
+ pts.forEach((p,i)=>{if(i%step===0||i===pts.length-1)labels+=`<text x="${p.x}" y="${H-18}" text-anchor="middle" font-size="11" fill="${labelFill}">${p.label}</text>`});
+ const adsPath=pts.map((p,i)=>(i?'L':'M')+p.x+' '+p.adsY).join(' '),revPath=pts.map((p,i)=>(i?'L':'M')+p.x+' '+p.revY).join(' ');
+ const dots=pts.map(p=>`<g><circle cx="${p.x}" cy="${p.adsY}" r="5" fill="${adsColor}" stroke="${dotStroke}" stroke-width="2"><title>${p.label} · Ad spend ${money(p.v.adSpend)} · Revenue ${money(p.v.revenue)}</title></circle><circle cx="${p.x}" cy="${p.revY}" r="5" fill="${revColor}" stroke="${dotStroke}" stroke-width="2"><title>${p.label} · Revenue ${money(p.v.revenue)} · Ad spend ${money(p.v.adSpend)}</title></circle><line x1="${p.x}" y1="${T}" x2="${p.x}" y2="${T+ph}" stroke="#64748b" stroke-opacity="0" stroke-width="18"><title>${p.label} · Revenue ${money(p.v.revenue)} · Ad spend ${money(p.v.adSpend)}</title></line></g>`).join('');
+ el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Revenue and advertising spend trend" style="width:100%;height:100%;font-family:Inter,system-ui,sans-serif"><defs><linearGradient id="adsFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="${adsColor}" stop-opacity=".15"/><stop offset="100%" stop-color="${adsColor}" stop-opacity=".01"/></linearGradient></defs>${grid}<path d="${adsPath} L ${pts[pts.length-1].x} ${T+ph} L ${pts[0].x} ${T+ph} Z" fill="url(#adsFill)"/><path d="${adsPath}" fill="none" stroke="${adsColor}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="${revPath}" fill="none" stroke="${revColor}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labels}<text x="${L}" y="15" font-size="12" font-weight="700" fill="${adsColor}">Ad spend (₹)</text><text x="${W-R}" y="15" text-anchor="end" font-size="12" font-weight="700" fill="${revColor}">Revenue (₹)</text></svg>`;
+ document.getElementById('chartTitle').textContent=(mode==='daily'?'Daily':'Weekly')+' revenue and advertising spend · Hover over a point to see date and amounts';
+ const legend=document.querySelector('#chart')?.parentElement?.querySelector('.legend');if(legend)legend.innerHTML=`<span><i class="dot" style="background:${revColor}"></i>Revenue (₹)</span><span><i class="dot" style="background:${adsColor}"></i>Ad spend (₹, excluding GST where available)</span>`;
+}
+function downloadCsv(){const lines=[['Date','Orders','Units','Revenue INR','Ad Spend INR','ROI (Revenue / Spend)'],...DATA.map(x=>[x.date,x.orders,x.units,x.revenue,x.adSpend,roi(x.revenue,x.adSpend)===null?'':roi(x.revenue,x.adSpend).toFixed(2)+'x'])];const csv=lines.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='WRAP_n_PAK_Daily_Report.csv';a.click();URL.revokeObjectURL(a.href)}
+const rechargeInput=document.getElementById('rechargeInput');
+function rechargeStorageKey(){return activePlatform==='blinkit'?'blinkitRechargeHistoryV1':activePlatform==='meesho'?'meeshoRechargeHistoryV1':'amazonRechargeHistory'}
+let rechargeHistory=[];let editingRechargeId=null;try{rechargeHistory=JSON.parse(localStorage.getItem(rechargeStorageKey())||'[]');rechargeHistory=rechargeHistory.map((r,i)=>({...r,id:r.id||('rch-'+i+'-'+(r.savedAt||''))}));}catch(e){rechargeHistory=[]}
+function renderRechargeHistory(){const body=document.getElementById('rechargeHistoryBody');const sorted=rechargeHistory.slice().sort((a,b)=>b.date.localeCompare(a.date));body.innerHTML=sorted.map(r=>`<tr><td>${formatDate(r.date)}</td><td>${escapeHtml(r.file||'Manual entry')}</td><td>${money(r.amount)}</td></tr>`).join('')||'<tr><td colspan="3" style="text-align:left">No recharge history yet.</td></tr>';const total=rechargeHistory.reduce((a,r)=>a+Number(r.amount||0),0);document.getElementById('rechargeHistoryFoot').innerHTML=rechargeHistory.length?`<tr class="totalrow"><td colspan="2">Total recorded recharges</td><td>${money(total)}</td></tr>`:'';const select=document.getElementById('rechargeManageSelect');if(select){const prior=select.value;select.innerHTML=sorted.map(r=>`<option value="${escapeHtml(r.id)}">${formatDate(r.date)} · ${money(r.amount)} · ${escapeHtml(r.file||'Manual entry')}</option>`).join('')||'<option value="">No saved records</option>';if(sorted.some(r=>r.id===prior))select.value=prior;const canManage=document.getElementById('adminPanel').style.display==='block';document.getElementById('editSelectedRechargeBtn').disabled=!canManage||!sorted.length;document.getElementById('deleteSelectedRechargeBtn').disabled=!canManage||!sorted.length;}const latest=sorted[0];document.getElementById('rechargeStatus').textContent=latest?`Latest recharge: ${formatDate(latest.date)} · ${money(latest.amount)} · ${rechargeHistory.length} recharge record(s)`:'No recharge bills recorded yet.'}
+
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+document.getElementById('rechargeBillFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;const status=document.getElementById('rechargeBillStatus');status.textContent='Selected: '+f.name+'. Checking for date and amount…';try{let text='';if(/\.pdf$/i.test(f.name)&&window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;for(let i=1;i<=Math.min(pdf.numPages,5);i++){const page=await pdf.getPage(i);const content=await page.getTextContent();text+=' '+content.items.map(x=>x.str).join(' ')}}else if(/\.(xlsx|xls|csv)$/i.test(f.name)){const wb=await readWorkbook(f);text=wb.SheetNames.map(n=>XLSX.utils.sheet_to_csv(wb.Sheets[n])).join(' ')}const date=parseDate((text.match(/(?:recharge|transaction|invoice|bill|payment)?\s*date\s*[:#-]?\s*(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/ ](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-/ ]\d{2,4})/i)||[])[1]);if(date)document.getElementById('rechargeDateInput').value=date;const nums=[...text.matchAll(/(?:₹|INR|amount|total|paid|recharge)\s*[:=]?\s*([0-9,]+(?:\.\d{1,2})?)/gi)].map(m=>Number(m[1].replace(/,/g,''))).filter(n=>Number.isFinite(n)&&n>0);if(nums.length)rechargeInput.value=Math.max(...nums).toFixed(2);status.textContent=`Selected ${f.name}. ${date?'Date detected: '+date+'. ':'Date not detected; enter it manually. '}${nums.length?'Possible amount detected; please verify before saving.':'Amount not detected; enter it manually.'}`;}catch(err){status.textContent='Selected '+f.name+'. Automatic reading was not available; enter date and amount manually.'}});
+function persistRecharge(){try{localStorage.setItem(rechargeStorageKey(),JSON.stringify(rechargeHistory))}catch(e){}}
+function editRecharge(id){const r=rechargeHistory.find(x=>x.id===id);if(!r)return;editingRechargeId=id;document.getElementById('rechargeDateInput').value=r.date;rechargeInput.value=Number(r.amount||0);document.getElementById('rechargeBillStatus').textContent='Editing recharge record. Change date/amount, then click Save changes.';document.getElementById('saveRechargeBtn').textContent='Save changes';document.getElementById('rechargeEditor').scrollIntoView({behavior:'smooth',block:'center'})}
+function deleteRecharge(id){const r=rechargeHistory.find(x=>x.id===id);if(!r)return;if(!confirm(`Delete recharge dated ${formatDate(r.date)} for ${money(r.amount)}?`))return;rechargeHistory=rechargeHistory.filter(x=>x.id!==id);persistRecharge();renderRechargeHistory();if(editingRechargeId===id){editingRechargeId=null;document.getElementById('saveRechargeBtn').textContent='Save recharge';}}
+document.getElementById('editSelectedRechargeBtn').addEventListener('click',()=>{const id=document.getElementById('rechargeManageSelect').value;if(id)editRecharge(id)});document.getElementById('deleteSelectedRechargeBtn').addEventListener('click',()=>{const id=document.getElementById('rechargeManageSelect').value;if(id)deleteRecharge(id)});
+document.getElementById('saveRechargeBtn').addEventListener('click',()=>{const date=document.getElementById('rechargeDateInput').value,amount=Number(rechargeInput.value),f=document.getElementById('rechargeBillFile').files[0];if(!date||!rechargeInput.value||!Number.isFinite(amount)||amount<=0){document.getElementById('rechargeStatus').textContent='Enter a valid recharge date and amount before saving.';return}if(editingRechargeId){const r=rechargeHistory.find(x=>x.id===editingRechargeId);if(r){r.date=date;r.amount=amount;if(f)r.file=f.name;}editingRechargeId=null;document.getElementById('saveRechargeBtn').textContent='Save recharge';}else{rechargeHistory.push({id:'rch-'+Date.now(),date,amount,file:f?.name||'Manual entry',savedAt:new Date().toISOString()});}persistRecharge();renderRechargeHistory();document.getElementById('rechargeBillStatus').textContent='Recharge record saved. You can upload the next bill.';rechargeInput.value='';document.getElementById('rechargeDateInput').value='';document.getElementById('rechargeBillFile').value=''});
+renderRechargeHistory();
+let settlementRecords=[];
+function renderSettlementManagement(){
+ const body=document.getElementById('settlementManagementBody');
+ const from=document.getElementById('settlementFrom')?.value||'',to=document.getElementById('settlementTo')?.value||'';
+ const visible=settlementRecords.filter(r=>r.date&&(!from||r.date>=from)&&(!to||r.date<=to)).sort((a,b)=>b.date.localeCompare(a.date));
+ const byDate={}; visible.forEach(r=>{if(!byDate[r.date])byDate[r.date]={count:0,gross:0,ads:0,total:0};byDate[r.date].count+=Number(r.count||0);byDate[r.date].gross+=Math.abs(Number(r.grossPayment||0));byDate[r.date].ads+=Math.abs(Number(r.adsCostInclGST||0));byDate[r.date].total+=Number(r.amount||0)});
+ const dates=Object.keys(byDate).sort((a,b)=>b.localeCompare(a));
+ document.getElementById('settlementCount').textContent=String(visible.reduce((n,r)=>n+Number(r.count||0),0));
+ document.getElementById('settlementGrandTotal').textContent=money(visible.reduce((a,r)=>a+Math.abs(Number(r.amount||0)),0));
+ document.getElementById('settlementManagementStatus').textContent=settlementRecords.length?`${dates.length} settlement date(s) in filter`:'No settlement data loaded';
+ body.innerHTML=dates.length?dates.map(d=>`<tr><td>${formatDate(d)}</td><td>${byDate[d].count}</td><td>${money(byDate[d].gross)}</td><td>${money(byDate[d].ads)}</td><td>${money(byDate[d].total)}</td></tr>`).join(''):'<tr><td colspan="5">No settlement rows found in selected date range. Upload a marketplace settlement/payment report in Admin mode.</td></tr>';
+}
+function resetSettlementDates(){document.getElementById('settlementFrom').value='';document.getElementById('settlementTo').value='';renderSettlementManagement()}
+for(const id of ['settlementFrom','settlementTo'])document.getElementById(id).addEventListener('change',renderSettlementManagement);
+function settlementStorageKey(){return activePlatform==='amazon'?'wrapNpakSettlementRecords':activePlatform==='meesho'?'wrapNpakMeeshoSettlementRecordsV2':'wrapNpakBlinkitSettlementRecordsV1'}
+function defaultSettlementRecords(){return activePlatform==='meesho'?MEESHO_SETTLEMENT_DEFAULT.map(x=>({...x})):activePlatform==='blinkit'?BLINKIT_SETTLEMENT_DEFAULT.map(x=>({...x})):[]}
+function loadSavedSettlement(){try{const raw=localStorage.getItem(settlementStorageKey());if(raw){const a=JSON.parse(raw);if(Array.isArray(a)){if(activePlatform==='meesho'&&a.length&&!a.some(x=>Object.prototype.hasOwnProperty.call(x,'adsCostInclGST'))){settlementRecords=MEESHO_SETTLEMENT_DEFAULT.map(x=>({...x}));localStorage.setItem(settlementStorageKey(),JSON.stringify(settlementRecords));renderSettlementManagement();return;}settlementRecords=a.filter(x=>x&&x.date&&Number.isFinite(Number(x.amount)));if(activePlatform==='blinkit'&&settlementRecords.length&&!settlementRecords.some(x=>x.utr)){settlementRecords=BLINKIT_SETTLEMENT_DEFAULT.map(x=>({...x}));localStorage.setItem(settlementStorageKey(),JSON.stringify(settlementRecords));}renderSettlementManagement();renderBlinkitPayouts();return;}}settlementRecords=defaultSettlementRecords();}catch(e){settlementRecords=defaultSettlementRecords()}renderSettlementManagement();renderBlinkitPayouts()}
+const sf=document.getElementById('settlementFile');
+function renderBlinkitPayouts(){
+ const body=document.getElementById('blinkitPayoutBody'); if(!body)return;
+ const rows=[...settlementRecords].sort((a,b)=>(b.payoutDate||b.date||'').localeCompare(a.payoutDate||a.date||''));
+ body.innerHTML=rows.map((r,i)=>`<tr><td>${escapeHtml(r.timePeriod||'')}</td><td>${formatDate(r.payoutDate||r.date)}</td><td>${escapeHtml(r.utr||'')}</td><td>${money(r.amount)}</td><td><button class="btn" type="button" onclick="deleteBlinkitPayout(${i})">Delete</button></td></tr>`).join('')||'<tr><td colspan="5">No payout records yet.</td></tr>';
+}
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function saveBlinkitPayout(){
+ const period=document.getElementById('blinkitPeriod').value.trim(), payoutDate=document.getElementById('blinkitPayoutDate').value, utr=document.getElementById('blinkitUtr').value.trim(), amount=Number(document.getElementById('blinkitPayout').value);
+ const status=document.getElementById('blinkitPayoutStatus');
+ if(!period||!payoutDate||!utr||!Number.isFinite(amount)||amount<0){status.textContent='Please enter Time Period, Payout Date, UTR and a valid Payout amount.';return;}
+ settlementRecords.push({date:payoutDate,payoutDate,amount:Math.round(amount*100)/100,grossPayment:Math.round(amount*100)/100,adsCostInclGST:0,count:1,timePeriod:period,utr,sourceType:'Blinkit payout image'});
+ try{localStorage.setItem(settlementStorageKey(),JSON.stringify(settlementRecords));}catch(e){}
+ ['blinkitPeriod','blinkitPayoutDate','blinkitUtr','blinkitPayout'].forEach(id=>document.getElementById(id).value='');
+ renderBlinkitPayouts();renderSettlementManagement();status.textContent='Payout added and saved in this browser.';
+}
+function deleteBlinkitPayout(index){
+ const rows=[...settlementRecords].sort((a,b)=>(b.payoutDate||b.date||'').localeCompare(a.payoutDate||a.date||''));
+ const target=rows[index];if(!target)return;
+ settlementRecords=settlementRecords.filter(r=>r!==target);
+ try{localStorage.setItem(settlementStorageKey(),JSON.stringify(settlementRecords));}catch(e){}
+ renderBlinkitPayouts();renderSettlementManagement();
+}
+async function processSettlement(){
+ const f=sf.files[0];if(!f){document.getElementById('settlementStatus').textContent='Choose a settlement file first.';return}
+ const status=document.getElementById('settlementStatus');
+ try{
+  if(!window.XLSX)throw new Error('Spreadsheet reader could not load. Check internet and reopen this HTML.');
+  let wb;
+  if(/\.zip$/i.test(f.name)){if(!window.JSZip)throw new Error('ZIP reader could not load. Reopen this dashboard with internet access, or extract the ZIP and upload its XLSX file.');const zip=await JSZip.loadAsync(await f.arrayBuffer());const entries=Object.values(zip.files).filter(x=>!x.dir&&/\.xlsx?$/i.test(x.name));const entry=activePlatform==='blinkit'?(entries.find(x=>/payout breakup/i.test(x.name))||entries.find(x=>/payout/i.test(x.name))):entries[0];if(!entry)throw new Error(activePlatform==='blinkit'?'No Payout Breakup workbook found inside the Blinkit ZIP.':'No Excel workbook found inside the ZIP.');var payoutEntryName=entry.name;wb=XLSX.read(await entry.async('arraybuffer'),{type:'array',cellDates:true,raw:true});}
+  else if(/\.csv$/i.test(f.name)){wb=XLSX.read(await f.text(),{type:'string',raw:true});}
+  else{wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true,raw:true});}
+  const parsed=[];
+  if(activePlatform==='amazon'){
+   let picked=null,headerIndex=-1,headers=[];
+   for(const sn of wb.SheetNames){const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:true});for(let i=0;i<Math.min(rows.length,80);i++){const h=rows[i].map(normalizeHeader);const ti=h.findIndex(x=>x==='type'),ai=h.findIndex(x=>x==='total'),di=h.findIndex(x=>x==='transaction release date');if(ti>=0&&ai>=0&&di>=0){picked={sheet:sn,rows};headerIndex=i;headers=h;break;}}if(picked)break;}
+   if(!picked)throw new Error('Amazon settlement needs Type, Total and Transaction Release Date columns.');
+   const ti=headers.findIndex(x=>x==='type'),ai=headers.findIndex(x=>x==='total'),di=headers.findIndex(x=>x==='transaction release date');
+   for(let i=headerIndex+1;i<picked.rows.length;i++){const row=picked.rows[i]||[];if(String(row[ti]??'').trim().toLowerCase()!=='transfer')continue;const date=parseDate(row[di]);if(!date)continue;parsed.push({date,amount:Math.abs(numeric(row[ai])),count:1,sourceType:'Transfer',file:f.name});}
+   }else if(activePlatform==='meesho'){
+    let picked=null,headerIndex=-1,headers=[];
+    for(const sn of wb.SheetNames){if(!/order payments/i.test(sn))continue;const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:true});for(let i=0;i<Math.min(rows.length,10);i++){const h=rows[i].map(normalizeHeader);const di=h.findIndex(x=>x==='payment date'),ai=h.findIndex(x=>x==='final settlement amount');if(di>=0&&ai>=0){picked={sheet:sn,rows};headerIndex=i;headers=h;break;}}if(picked)break;}
+    if(!picked)throw new Error('Meesho payment workbook needs Order Payments columns Payment Date and Final Settlement Amount. Upload the ZIP or extracted XLSX.');
+    const di=headers.findIndex(x=>x==='payment date'),ai=headers.findIndex(x=>x==='final settlement amount'),totals={};
+    for(let i=headerIndex+1;i<picked.rows.length;i++){const row=picked.rows[i]||[],date=parseDate(row[di]);if(!date)continue;const amount=numeric(row[ai]);if(!Number.isFinite(amount))continue;if(!totals[date])totals[date]={date,amount:0,grossPayment:0,adsCostInclGST:0,count:0,sourceType:'Meesho final settlement less Total Ads Cost incl. GST',file:f.name};totals[date].grossPayment+=amount;totals[date].count++;}
+    const adsByDeductionDate={};for(const sn of wb.SheetNames){if(!/ads cost/i.test(sn))continue;const ar=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:true});let hi=-1,di2=-1,ci=-1;for(let k=0;k<Math.min(ar.length,10);k++){const hh=ar[k].map(normalizeHeader);di2=hh.findIndex(x=>x==='deduction date');ci=hh.findIndex(x=>x==='total ads cost');if(di2>=0&&ci>=0){hi=k;break;}}if(hi>=0){for(let k=hi+1;k<ar.length;k++){const date=parseDate(ar[k][di2]);if(!date)continue;adsByDeductionDate[date]=(adsByDeductionDate[date]||0)+Math.abs(numeric(ar[k][ci]));}}break;}
+    for(const [date,cost] of Object.entries(adsByDeductionDate)){if(!totals[date])totals[date]={date,amount:0,grossPayment:0,adsCostInclGST:0,count:0,sourceType:'Meesho ads deduction incl. GST',file:f.name};totals[date].adsCostInclGST=cost;}
+    parsed.push(...Object.values(totals).map(x=>({...x,amount:Math.round((x.grossPayment-x.adsCostInclGST)*100)/100,grossPayment:Math.round(x.grossPayment*100)/100,adsCostInclGST:Math.round(x.adsCostInclGST*100)/100})));
+
+  }else{
+   let picked=null;
+   for(const sn of wb.SheetNames){const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:true});for(let i=0;i<rows.length;i++){const row=rows[i]||[];const label=normalizeHeader(row.find(v=>normalizeHeader(v)==='net payout in this cycle')||'');if(label==='net payout in this cycle'){picked={sheet:sn,row,rows,rowIndex:i};break;}}if(picked)break;}
+   if(!picked)throw new Error('Blinkit payout workbook needs a “Net Payout in this Cycle” row in the Payout Breakup sheet.');
+   let amount=numeric(picked.row[picked.row.length-1]);
+   if(!amount){for(let i=picked.row.length-1;i>=0;i--){const v=numeric(picked.row[i]);if(v){amount=v;break;}}}
+   if(!Number.isFinite(amount)||amount===0)throw new Error('Could not read the Net Amount for “Net Payout in this Cycle”.');
+   const cycleMatch=(f.name+' '+(typeof payoutEntryName!=='undefined'?payoutEntryName:'')).match(/(20\d{2}-\d{2}-\d{2})\s*(?:to|[-–])\s*(20\d{2}-\d{2}-\d{2})/i);
+   const payoutDate=cycleMatch?cycleMatch[2]:(DATA.map(x=>x.date).sort().slice(-1)[0]||new Date().toISOString().slice(0,10));
+   parsed.push({date:payoutDate,amount:Math.round(amount*100)/100,grossPayment:Math.round(amount*100)/100,adsCostInclGST:0,count:1,sourceType:'Blinkit Net Payout in this Cycle',file:f.name});
+  }
+  if(!parsed.length)throw new Error('No valid settlement/payment rows found in the uploaded file.');
+  settlementRecords=parsed.sort((a,b)=>a.date.localeCompare(b.date));try{localStorage.setItem(settlementStorageKey(),JSON.stringify(settlementRecords));}catch(e){}
+  renderSettlementManagement();const total=settlementRecords.reduce((a,r)=>a+Math.abs(Number(r.amount||0)),0);
+  status.textContent=activePlatform==='blinkit'?`Updated from ${f.name}: Net Payout in this Cycle = ${money(total)}. Payout cycle date used: ${formatDate(parsed[0].date)}.`:activePlatform==='meesho'?`Updated from ${f.name}: ${parsed.reduce((n,r)=>n+Number(r.count||1),0)} records across ${new Set(parsed.map(r=>r.date)).size} dates. Meesho net settlement = Final Settlement Amount minus Total Ads Cost (including GST), matched by Deduction Date. Total: ${money(total)}.`:`Updated from ${f.name}: ${parsed.length} transfer records across ${new Set(parsed.map(r=>r.date)).size} dates. Total: ${money(total)}.`;
+  document.getElementById('settlementColumns').style.display='none';
+ }catch(e){status.textContent='Could not read file: '+e.message}
+}
+document.getElementById('applySettlementBtn').addEventListener('click',processSettlement);
+function toggleAdmin(){
+ const panel=document.getElementById('adminPanel');
+ if(panel.style.display==='block'){panel.style.display='none';document.getElementById('settlementCard').style.display='none';document.getElementById('rechargeEditor').style.display='none';document.getElementById('adminToggle').textContent='Admin login';renderRechargeHistory();return;}
+ const pin=prompt('Enter admin PIN');if(pin===null)return;if(pin!==ADMIN_PIN){alert('Incorrect PIN.');return;}
+ panel.style.display='block';document.getElementById('settlementCard').style.display='block';document.getElementById('rechargeEditor').style.display=activePlatform==='meesho'?'none':'block';document.getElementById('rechargeCard').style.display=activePlatform==='meesho'?'none':'';document.getElementById('adminToggle').textContent='Lock admin';renderRechargeHistory();
+}
+function dataStorageKey(){return activePlatform==='amazon'?'amazonDashboardData':activePlatform==='meesho'?'meeshoDashboardDataV2':activePlatform==='blinkit'?'blinkitDashboardDataV1':'instamartDashboardDataV1'}
+function persistData(){try{DATA=DATA.filter(x=>x.date!=='2026-08-31');localStorage.setItem(dataStorageKey(),JSON.stringify(DATA));localStorage.setItem(dataStorageKey()+'Month',DATA[0]?.date?.slice(0,7)||'');}catch(e){console.warn(e)}}
+function loadSavedData(){
+ const base=activePlatform==='amazon'?DEFAULT_DATA:activePlatform==='meesho'?MEESHO_DEFAULT_DATA:activePlatform==='blinkit'?BLINKIT_DEFAULT_DATA:INSTAMART_SALES_DEFAULT;
+ try{const raw=localStorage.getItem(dataStorageKey());if(raw){const parsed=JSON.parse(raw);if(Array.isArray(parsed)&&parsed.length){const merged=new Map(base.map(x=>[x.date,{...x}]));for(const x of parsed){if(x&&x.date&&x.date!=='2026-08-31')merged.set(x.date,{...(merged.get(x.date)||{date:x.date,day:Number(String(x.date).slice(8,10)),orders:0,units:0,revenue:0,adSpend:0}),...x,adSpend:Number(x.adSpend||0)||Number(merged.get(x.date)?.adSpend||0)});}DATA=[...merged.values()].filter(x=>x.date!=='2026-08-31').sort((a,b)=>a.date.localeCompare(b.date));return;}}}catch(e){}
+ DATA=base.map(x=>({...x}));
+}
+
+function renderInstamartEntries(){const body=document.getElementById('instaEntryBody');if(!body)return;body.innerHTML=instamartEntries.slice().sort((a,b)=>b.date.localeCompare(a.date)).map((x,i)=>`<tr><td>${escapeHtml(x.type)}</td><td>${formatDate(x.date)}</td><td>${escapeHtml(x.ref||'')}</td><td>${money(Math.abs(x.amount))}</td><td><button class="btn" onclick="deleteInstamartEntry(${i})">Delete</button></td></tr>`).join('')||'<tr><td colspan="5">No manual entries yet.</td></tr>'}
+function saveInstamartEntry(){const type=document.getElementById('instaEntryType').value,date=document.getElementById('instaEntryDate').value,ref=document.getElementById('instaEntryRef').value.trim(),amount=Number(document.getElementById('instaEntryAmount').value);if(!date||!Number.isFinite(amount)||amount<=0){alert('Enter a date and a positive amount.');return;}instamartEntries.push({type,date,ref,amount:Math.abs(amount)});localStorage.setItem('instamartManualEntries',JSON.stringify(instamartEntries));document.getElementById('instaEntryRef').value='';document.getElementById('instaEntryAmount').value='';renderInstamartEntries()}
+function deleteInstamartEntry(i){const rows=instamartEntries.slice().sort((a,b)=>b.date.localeCompare(a.date));const item=rows[i];instamartEntries=instamartEntries.filter(x=>x!==item);localStorage.setItem('instamartManualEntries',JSON.stringify(instamartEntries));renderInstamartEntries()}
+try{instamartEntries=JSON.parse(localStorage.getItem('instamartManualEntries')||'[]')}catch(e){instamartEntries=[]}renderInstamartEntries();document.getElementById('instamartEntries').style.display='none';document.getElementById('gmvMetric').style.display='none';document.getElementById('discountMetric').style.display='none';document.getElementById('gmvHeader').style.display='none';document.getElementById('discountHeader').style.display='none';
+
+function toggleMarketplaceMenu(){document.getElementById('marketplaceMenu').classList.toggle('open')}
+document.addEventListener('click',e=>{if(!e.target.closest('.menuWrap'))document.getElementById('marketplaceMenu')?.classList.remove('open')});
+function platformName(){return activePlatform==='amazon'?'Amazon':activePlatform==='meesho'?'Meesho':activePlatform==='blinkit'?'Blinkit':'Instamart'}
+function switchMarketplace(platform){
+ if(!['amazon','meesho','blinkit','instamart'].includes(platform))return;
+ if(platform===activePlatform){document.getElementById('marketplaceMenu').classList.remove('open');return;}
+ activePlatform=platform;
+ document.body.classList.toggle('meesho-mode',platform==='meesho');
+ document.getElementById('rechargeCard').style.display=['meesho','instamart'].includes(platform)?'none':'';
+ document.getElementById('rechargeEditor').style.display=['meesho','instamart'].includes(platform)?'none':(document.getElementById('adminPanel').style.display==='block'?'block':'none');
+ for(const id of ['kpiFrom','kpiTo','chartFrom','chartTo','tableFrom','tableTo']){const el=document.getElementById(id);el.dataset.userSet='';el.value='';}
+ loadSavedData();loadSavedSettlement();try{rechargeHistory=JSON.parse(localStorage.getItem(rechargeStorageKey())||'[]');}catch(e){rechargeHistory=[]}renderRechargeHistory();
+ document.getElementById('adsSheetUrl').value=ADS_SHEET_URLS[activePlatform];
+ document.getElementById('amazonMenuOption').classList.toggle('active',platform==='amazon');
+ document.getElementById('meeshoMenuOption').classList.toggle('active',platform==='meesho');
+ document.getElementById('blinkitMenuOption').classList.toggle('active',platform==='blinkit');document.getElementById('instamartMenuOption').classList.toggle('active',platform==='instamart');document.getElementById('instamartEntries').style.display=platform==='instamart'?'':'none';document.getElementById('gmvMetric').style.display=platform==='instamart'?'':'none';document.getElementById('discountMetric').style.display=platform==='instamart'?'':'none';document.getElementById('gmvHeader').style.display=platform==='instamart'?'':'none';document.getElementById('discountHeader').style.display=platform==='instamart'?'':'none';
+ document.getElementById('marketplaceMenu').classList.remove('open');
+ document.getElementById('salesUpdateStatus').textContent=platform==='blinkit'?'Upload the Blinkit Sales Summary report. Daily orders = unique Order Ids; units = sum of Quantity; revenue = sum of Total Gross Bill Amount.':'Upload the '+platformName()+' sales report; the platform-specific columns will be used.';
+ document.getElementById('settlementStatus').textContent=platform==='amazon'?'Upload the Amazon settlement CSV and click Update Settlement.':platform==='meesho'?'Upload the Meesho payment ZIP/workbook and click Update Settlement.':platform==='blinkit'?'Upload the Blinkit payout ZIP/workbook; Net Payout in this Cycle will be used.':'Enter Instamart bank settlements and debit/credit notes manually in the Instamart entries section.';
+ document.getElementById('settlementFile').accept=platform==='amazon'?'.csv,.xlsx,.xls':'.zip,.xlsx,.xls,.csv';
+ document.getElementById('settlementCard').querySelector('.uploadbox').style.display=['blinkit','instamart'].includes(platform)?'none':'';document.getElementById('blinkitSettlementEditor').style.display=platform==='blinkit'?'block':'none';document.getElementById('settlementCard').querySelector('.cardhead .small').textContent=platform==='blinkit'?'Enter payout details from the settlement screenshot':platform==='instamart'?'Instamart settlements are entered manually in the Instamart entries section':'Upload a settlement file to review it here';document.getElementById('settlementCard').querySelector('.cardhead .tag').textContent=['blinkit','instamart'].includes(platform)?'Manual entry':'Manual upload';renderBlinkitPayouts();
+ document.getElementById('settlementManagementCard').querySelector('.small').textContent=platform==='amazon'?'Transfer rows grouped by Transaction Release Date':platform==='meesho'?'Final Settlement Amount less Total Ads Cost (including GST), grouped by Deduction Date':platform==='blinkit'?'Blinkit Net Payout in this Cycle from the payout summary':'Instamart bank settlements and debit/credit notes are entered manually.';
+ document.getElementById('settlementManagementCard').querySelector('.grid .label').textContent=platform==='amazon'?'Transfer records':platform==='meesho'?'Payment records':platform==='blinkit'?'Payout cycles':'Manual entries';
+ document.getElementById('settlementFormula').textContent=platform==='amazon'?'Amazon transfers grouped by Transaction Release Date.':platform==='meesho'?'Meesho net settlement = Final Settlement Amount − Total Ads Cost (including GST), matched by Deduction Date.':platform==='blinkit'?'Blinkit settlement uses Net Payout in this Cycle from the payout summary; daily ad spend is tracked separately.':'Instamart settlements and debit/credit notes are maintained in the manual entries section.';
+ const ths=document.querySelectorAll('#settlementManagementCard table thead th');
+ if(ths.length>=5){ths[1].textContent=platform==='blinkit'?'Payout records': 'Records';ths[2].textContent=platform==='blinkit'?'Net Payout in this Cycle':'Gross payment';ths[3].textContent=platform==='blinkit'?'Ads spend (tracked separately)':'Ads deducted';ths[4].textContent=platform==='blinkit'?'Net payout':'Net settlement';}
+ document.querySelector('.hero .tag').textContent=platformName()+' · '+[...new Set(DATA.map(x=>x.date.slice(0,7)))].join(', ');
+ refreshDashboard();
+}
+function normalizeHeader(v){return String(v??'').toLowerCase().replace(/[\n\r_()₹%]/g,' ').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim()}
+function numeric(v){if(typeof v==='number')return v;const n=Number(String(v??'').replace(/[₹,\s]/g,''));return Number.isFinite(n)?n:0}
+function parseDate(v){if(v instanceof Date&&!isNaN(v))return `${v.getUTCFullYear()}-${String(v.getUTCMonth()+1).padStart(2,'0')}-${String(v.getUTCDate()).padStart(2,'0')}`;if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Date.UTC(1899,11,30)+v*86400000);return d.toISOString().slice(0,10)}const s=String(v??'').trim();if(!s)return '';let m=s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);if(m)return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);if(m){let y=Number(m[3]);if(y<100)y+=2000;return `${y}-${String(Number(m[2])).padStart(2,'0')}-${String(Number(m[1])).padStart(2,'0')}`}m=s.match(/^(\d{1,2})[-/ ]([A-Za-z]{3,})[-/ ](\d{2,4})/);if(m){const mo=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(m[2].slice(0,3).toLowerCase())+1;let y=Number(m[3]);if(y<100)y+=2000;if(mo)return `${y}-${String(mo).padStart(2,'0')}-${m[1].padStart(2,'0')}`}return ''}
+async function readWorkbook(file){if(!window.XLSX)throw new Error('Spreadsheet reader could not load. Please connect to the internet and reopen this HTML.');if(/\.csv$/i.test(file.name))return XLSX.read(await file.text(),{type:'string',cellDates:true});return XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true})}
+async function applySalesUpdate(){
+ const f=document.getElementById('salesUpdateFile').files[0];if(!f){document.getElementById('salesUpdateStatus').textContent='Choose a sales report first.';return}
+ const st=document.getElementById('salesUpdateStatus');
+ try{
+  const wb=await readWorkbook(f);let parsed=[];
+  if(activePlatform==='instamart'){
+   let ws=wb.Sheets[wb.SheetNames.find(n=>/discount/i.test(n))||wb.SheetNames[0]];
+   let rows=XLSX.utils.sheet_to_json(ws,{defval:'',raw:true});const grouped={};
+   for(const row of rows){const date=parseDate(row.ORDER_DATE);if(!date)continue;if(!grouped[date])grouped[date]={date,day:Number(date.slice(8,10)),orders:0,units:0,revenue:0,gmv:0,discount:0,adSpend:0};grouped[date].orders+=1;grouped[date].units+=numeric(row.UNITS_SOLD);grouped[date].gmv+=numeric(row.GMV);grouped[date].revenue+=numeric(row.GMV);grouped[date].discount+=numeric(row.DISCOUNT_SPEND);}
+   parsed=Object.values(grouped).map(x=>({...x,gmv:Math.round(x.gmv*100)/100,revenue:Math.round(x.revenue*100)/100,discount:Math.round(x.discount*100)/100}));
+  }else if(activePlatform==='blinkit'){
+   let picked=null,hi=-1,headers=[];
+   for(const sn of wb.SheetNames){const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:true});for(let i=0;i<Math.min(rows.length,20);i++){const h=rows[i].map(normalizeHeader);if(h.includes('order id')&&h.includes('order date')&&h.includes('quantity')&&h.some(x=>x.includes('total gross bill amount'))){picked={sheet:sn,rows};hi=i;headers=h;break;}}if(picked)break;}
+   if(!picked)throw new Error('Blinkit report needs Order Id, Order Date, Quantity and Total Gross Bill Amount columns.');
+   const ix={id:headers.findIndex(x=>x==='order id'),date:headers.findIndex(x=>x==='order date'),units:headers.findIndex(x=>x==='quantity'),revenue:headers.findIndex(x=>x.includes('total gross bill amount'))};
+   const grouped={};
+   for(let i=hi+1;i<picked.rows.length;i++){const row=picked.rows[i]||[],date=parseDate(row[ix.date]);if(!date)continue;if(!grouped[date])grouped[date]={date,day:Number(date.slice(8,10)),orders:new Set(),units:0,revenue:0,adSpend:0};const orderId=String(row[ix.id]??'').trim();if(orderId)grouped[date].orders.add(orderId);grouped[date].units+=numeric(row[ix.units]);grouped[date].revenue+=numeric(row[ix.revenue]);}
+   parsed=Object.values(grouped).map(x=>({date:x.date,day:x.day,orders:x.orders.size,units:x.units,revenue:Math.round(x.revenue*100)/100,adSpend:0}));
+  }else{
+   let ws=wb.Sheets[wb.SheetNames.find(n=>activePlatform==='amazon'?/amazon|amzon/i.test(n):/meesho/i.test(n))||wb.SheetNames[0]];
+   let rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});let hr=-1,headers=[];
+   for(let i=0;i<Math.min(rows.length,15);i++){const h=rows[i].map(normalizeHeader);if(h.some(x=>x==='date')&&h.some(x=>x.includes('total orders'))&&h.some(x=>x.includes('total units'))&&h.some(x=>x.includes(activePlatform==='amazon'?'amazon revenue':'meesho revenue'))){hr=i;headers=h;break;}}
+   if(hr<0)throw new Error('Could not find Date, Total Orders, Total Units and Marketplace Revenue columns.');
+   const find=term=>headers.findIndex(x=>x===term||x.includes(term));const ci={date:find('date'),orders:find('total orders'),units:find('total units'),revenue:find(activePlatform==='amazon'?'amazon revenue':'meesho revenue')};
+   for(let i=hr+1;i<rows.length;i++){const r=rows[i],date=parseDate(r[ci.date]);if(!date)continue;parsed.push({date,day:Number(date.slice(8,10)),orders:numeric(r[ci.orders]),units:numeric(r[ci.units]),revenue:numeric(r[ci.revenue]),adSpend:0});}
+  }
+  if(!parsed.length)throw new Error('No dated sales rows found in the selected marketplace report.');
+  const oldMap=new Map(DATA.map(x=>[x.date,x]));for(const x of parsed){const old=oldMap.get(x.date);x.adSpend=old?Number(old.adSpend||0):0;oldMap.set(x.date,{...(old||{}),...x,adSpend:x.adSpend||Number(old?.adSpend||0)});}
+  DATA=[...oldMap.values()].sort((a,b)=>a.date.localeCompare(b.date));persistData();refreshDashboard();
+  st.textContent=`Updated successfully from ${f.name}. ${parsed.length} daily rows imported; existing dates were retained and matching dates updated. Dashboard now contains ${DATA.length} unique dates (${formatDate(DATA[0].date)} to ${formatDate(DATA[DATA.length-1].date)}).`;
+ }catch(err){st.textContent='Update failed: '+err.message}
+}
+document.getElementById('applySalesBtn').addEventListener('click',applySalesUpdate);
+async function parseAdsWorkbook(wb,sourceName){let parsed=[];
+ if(activePlatform==='meesho'){
+  for(const sn of wb.SheetNames){const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:true});for(let i=0;i<Math.min(rows.length,20);i++){const h=rows[i].map(normalizeHeader);const di=h.findIndex(x=>x==='deduction duration');const ai=h.findIndex(x=>x==='ad cost incl. credits/waivers/discounts'||x.includes('ad cost incl credits')||x.includes('ad cost incl. credits'));if(di>=0&&ai>=0){for(let j=i+1;j<rows.length;j++){const date=parseDate(rows[j][di]);if(date)parsed.push({date,spend:Math.abs(numeric(rows[j][ai]))});}if(parsed.length)break;}}if(parsed.length)break;}
+  if(!parsed.length)throw new Error('Meesho Ads Cost sheet needs Deduction Duration and Ad Cost incl. Credits/Waivers/Discounts columns.');
+  const totals={};parsed.forEach(x=>totals[x.date]=(totals[x.date]||0)+x.spend);const dates=Object.keys(totals).sort();for(const date of dates){const existing=DATA.find(x=>x.date===date);if(existing)existing.adSpend=Math.round(totals[date]*100)/100;else DATA.push({date,day:Number(date.slice(8,10)),orders:0,units:0,revenue:0,adSpend:Math.round(totals[date]*100)/100});}DATA.sort((a,b)=>a.date.localeCompare(b.date));persistData();refreshDashboard();return dates.length;
+ }
+for(const sn of wb.SheetNames){const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:true});for(let i=0;i<Math.min(rows.length,20);i++){const h=rows[i].map(normalizeHeader);const di=h.findIndex(x=>x==='date'||x==='date time'||x==='day'||x.includes('start date')||x.includes('date'));const ai=(()=>{let k=h.findIndex(x=>x==='total ads cost');if(k<0)k=h.findIndex(x=>x==='marketing budget');if(k<0)k=h.findIndex(x=>x==='spend'||x==='cost'||x.includes('amount spent')||x.includes('advertising charges')||x.includes('total spend'));if(k<0)k=h.findIndex(x=>x==='ad cost'||x.includes('ad cost incl')||x.includes('spend')||x.includes('cost'));return k;})();  if(di>=0&&ai>=0){for(let j=i+1;j<rows.length;j++){let date=parseDate(rows[j][di]);if(!date){const day=Number(String(rows[j][di]??'').trim());if(day>=1&&day<=31){const years=[...new Set(DATA.map(x=>x.date.slice(0,4)))];const months=[...new Set(DATA.map(x=>x.date.slice(0,7)))];const likely=months[months.length-1]||'2026-09';date=likely+'-'+String(day).padStart(2,'0');}}if(date)parsed.push({date,spend:Math.abs(numeric(rows[j][ai]))});}if(parsed.length)break;}}if(parsed.length)break;}if(!parsed.length)throw new Error('Could not detect date/day and spend/cost columns.');const totals={};parsed.forEach(x=>totals[x.date]=(totals[x.date]||0)+x.spend);const dates=Object.keys(totals).sort();const overlaps=dates.filter(date=>DATA.some(x=>x.date===date));if(!overlaps.length){throw new Error(`The sheet has ad data for ${dates[0]} to ${dates[dates.length-1]}, but none of those dates match the dashboard sales dates (${DATA[0]?.date||'no sales dates'} to ${DATA[DATA.length-1]?.date||'no sales dates'}). The linked tab currently appears to contain March 2026 data. Add/select the September/October rows in the Google Sheet, then update again; no dashboard data was changed.`)}for(const date of dates){const existing=DATA.find(x=>x.date===date);if(existing)existing.adSpend=totals[date];else DATA.push({date,day:Number(date.slice(8,10)),orders:0,units:0,revenue:0,adSpend:totals[date]});}DATA.sort((a,b)=>a.date.localeCompare(b.date));persistData();refreshDashboard();return dates.length}
+async function applyAdsFile(){const f=document.getElementById('adsUpdateFile').files[0],st=document.getElementById('adsUpdateStatus');if(!f){st.textContent='Choose an ad spend file first.';return}try{const wb=await readWorkbook(f),n=await parseAdsWorkbook(wb,f.name);st.textContent=`Updated ad spend from ${f.name} for ${n} dates. Earlier dates and sales data were retained.`}catch(err){st.textContent='Update failed: '+err.message}}
+document.getElementById('applyAdsBtn').addEventListener('click',applyAdsFile);
+function loadGoogleSheetViaGviz(id,gid){
+ return new Promise((resolve,reject)=>{
+  const oldGoogle=window.google;let settled=false;let script;let timer;
+  const finish=(fn,value)=>{if(settled)return;settled=true;if(timer)clearTimeout(timer);if(script)script.remove();if(oldGoogle===undefined)delete window.google;else window.google=oldGoogle;fn(value)};
+  const queryApi={setResponse(response){try{if(!response||response.status==='error')throw new Error((response&&response.errors&&response.errors[0]&&response.errors[0].detailed_message)||'Google returned no sheet data');const table=response.table;if(!table||!table.cols||!table.rows)throw new Error('Google returned an empty sheet');const rows=[table.cols.map(c=>c.label||c.id||''),...table.rows.map(r=>(r.c||[]).map(c=>c?((c.f!==null&&c.f!==undefined)?c.f:c.v):''))];finish(resolve,rows)}catch(e){finish(reject,e)}}};
+  window.google=Object.assign({},oldGoogle||{},{visualization:Object.assign({},(oldGoogle&&oldGoogle.visualization)||{},{Query:queryApi})});
+  script=document.createElement('script');script.src=`https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/gviz/tq?tqx=out:json&gid=${encodeURIComponent(gid)}`;script.onerror=()=>finish(reject,new Error('Google sheet script request was blocked'));timer=setTimeout(()=>finish(reject,new Error('Google sheet request timed out')),12000);document.head.appendChild(script);
+ });
+}
+document.getElementById('updateAdsSheetBtn').addEventListener('click',async()=>{const st=document.getElementById('adsUpdateStatus'),url=document.getElementById('adsSheetUrl').value.trim();if(!url){st.textContent='Paste the Google Sheet link first.';return}try{const id=(url.match(/spreadsheets\/d\/([^/]+)/)||[])[1];const gid=(url.match(/[?&#]gid=(\d+)/)||[])[1]||'0';if(!id)throw new Error('This does not look like a Google Sheets URL.');st.textContent='Connecting to Google Sheet…';const urls=[`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`,`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`,`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent('Sheet1')}`];let txt='',lastErr='';for(const csvUrl of urls){try{const res=await fetch(csvUrl,{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const body=await res.text();if(/<!doctype html|<html/i.test(body.slice(0,300))||/accounts.google.com|sign in/i.test(body.slice(0,800)))throw new Error('Google returned a sign-in/HTML page instead of CSV; enable Anyone with the link (Viewer) or publish the tab as CSV.');if(!body.trim())throw new Error('Empty CSV');txt=body;break}catch(e){lastErr=e.message}}if(!txt){try{const gviz=await loadGoogleSheetViaGviz(id,gid);const wb={SheetNames:['Google Sheet'],Sheets:{'Google Sheet':XLSX.utils.aoa_to_sheet(gviz)}};const n=await parseAdsWorkbook(wb,'Google Sheet');st.textContent=`Google Sheet updated successfully for ${n} dates via published-sheet reader. Existing sales dates and earlier data were retained.`;return}catch(gvizErr){throw new Error('Google Sheets could not be read by CSV or the alternate reader. '+lastErr+'; '+gvizErr.message+'. Ensure the tab is viewable by anyone with the link, or download it as CSV and use Update from File.')}}const wb=XLSX.read(txt,{type:'string'});const n=await parseAdsWorkbook(wb,'Google Sheet');st.textContent=`Google Sheet updated successfully for ${n} dates. Existing sales dates and earlier data were retained.`}catch(err){st.textContent='Could not update from Google Sheet: '+err.message+' If this HTML is opened as a local file, the browser may block Google requests (CORS). Use a published CSV link or download the tab as CSV and use Update from File.'}});
+DATA=DATA.filter(x=>x.date!=='2026-08-31');loadSavedData();DATA=DATA.filter(x=>x.date!=='2026-08-31');refreshDashboard();renderRechargeHistory();loadSavedSettlement();
+</script>
+</body>
+</html>
